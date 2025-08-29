@@ -428,6 +428,7 @@ sort($states);
         <a href="orders.php">Home</a>
         <a href="monthly_sales.php">Monthly Sales</a>
         <a href="tax_rate.php">Tax Rates</a>
+        <a href="barcode.php">Barcode</a>
     </div> 
 </div>
 
