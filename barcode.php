@@ -285,7 +285,7 @@ $totalPages = ceil($total / $limit);
         }
 
         .btn {
-            padding: 8px 16px;
+            padding: 8px 40px;
             background-color: #1e88e5;
             color: white;
             border: none;
