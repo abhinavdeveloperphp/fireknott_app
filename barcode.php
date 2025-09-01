@@ -51,10 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                 $barcodeFile = $barcodeDir . $randomFile;
 
                 // Generate barcode image
-                // $barcodeData = $generator->getBarcode($code, $generator::TYPE_CODE_128, 3, 100);
-                // file_put_contents($barcodeFile, $barcodeData);
                 generateLabelImage(
-                    "Fireknøtt",   // Brand
+                    "Fireknøtt",  // Brand
                     $price,
                     $garment_type,
                     $code,
@@ -165,6 +163,15 @@ $totalPages = ceil($total / $limit);
             text-align: center;
             color: #333;
             margin-bottom: 30px;
+        }
+
+        .instructions {
+            text-align: center;
+            color: #555;
+            margin: -15px auto 25px;
+            max-width: 700px;
+            font-size: 16px;
+            line-height: 1.6;
         }
 
         .summary {
@@ -305,6 +312,24 @@ $totalPages = ceil($total / $limit);
             background-color: #1565c0;
         }
 
+        .pagination-btn {
+            padding: 8px 15px;
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            margin: 0 4px;
+            display: inline-block;
+        }
+
+        .pagination-btn:hover {
+            background-color: #1565c0;
+        }
+
         .btn-clear {
             background-color: #eeeeee;
             color: #333;
@@ -348,9 +373,7 @@ $totalPages = ceil($total / $limit);
 
         .spinner {
             border: 3px solid #f3f3f3;
-            /* Light gray */
             border-top: 3px solid white;
-            /* Blue/white */
             border-radius: 50%;
             width: 16px;
             height: 16px;
@@ -394,6 +417,12 @@ $totalPages = ceil($total / $limit);
     </div>
 
     <div class="container">
+
+        <h2>Import Products & Generate Barcodes</h2>
+        <p class="instructions">
+            Select your product data file (.xlsx or .xls) and click the button to import all products and create
+            barcodes automatically. The generated list will appear below.
+        </p>
         <?php if ($message): ?>
             <div class="message"><?= htmlspecialchars($message) ?></div>
         <?php endif; ?>
@@ -446,33 +475,33 @@ $totalPages = ceil($total / $limit);
 
             <div class="pagination" style="text-align:center; margin-top:20px;">
                 <?php if ($page > 1): ?>
-                    <a class="btn" href="?page=<?= $page - 1 ?>">Previous</a>
+                    <a class="pagination-btn" href="?page=<?= $page - 1 ?>">Previous</a>
                 <?php endif; ?>
 
                 <?php
-                $range = 2; // how many pages to show before & after current
+                $range = 2;
                 $start = max(1, $page - $range);
                 $end = min($totalPages, $page + $range);
 
                 if ($start > 1) {
-                    echo '<a class="btn" href="?page=1">1</a>';
+                    echo '<a class="pagination-btn" href="?page=1">1</a>';
                     if ($start > 2)
                         echo ' ... ';
                 }
 
                 for ($p = $start; $p <= $end; $p++): ?>
-                    <a class="btn <?= $p == $page ? 'btn-clear' : '' ?>" href="?page=<?= $p ?>"><?= $p ?></a>
+                    <a class="pagination-btn <?= $p == $page ? 'btn-clear' : '' ?>" href="?page=<?= $p ?>"><?= $p ?></a>
                 <?php endfor;
 
                 if ($end < $totalPages) {
                     if ($end < $totalPages - 1)
                         echo ' ... ';
-                    echo '<a class="btn" href="?page=' . $totalPages . '">' . $totalPages . '</a>';
+                    echo '<a class="pagination-btn" href="?page=' . $totalPages . '">' . $totalPages . '</a>';
                 }
                 ?>
 
                 <?php if ($page < $totalPages): ?>
-                    <a class="btn" href="?page=<?= $page + 1 ?>">Next</a>
+                    <a class="pagination-btn" href="?page=<?= $page + 1 ?>">Next</a>
                 <?php endif; ?>
             </div>
 
@@ -481,16 +510,18 @@ $totalPages = ceil($total / $limit);
     </div>
 
     <script>
+        
         const form = document.querySelector("form");
         const uploadBtn = document.getElementById("uploadBtn");
         const btnText = document.getElementById("btnText");
         const btnSpinner = document.getElementById("btnSpinner");
 
         form.addEventListener("submit", function () {
-            uploadBtn.disabled = true; // disable button
-            btnText.textContent = "Uploading..."; // change text
-            btnSpinner.classList.remove("hidden"); // show spinner
+            uploadBtn.disabled = true;
+            btnText.textContent = "Uploading...";
+            btnSpinner.classList.remove("hidden");
         });
+
     </script>
 
 
