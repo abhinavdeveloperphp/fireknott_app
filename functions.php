@@ -132,7 +132,7 @@ function shopify_gql_call($token, $shop, $query = array())
 
 function generateLabelImage($brand, $mrp, $productType, $code, $size, $color, $website, $savePath)
 {
-	$width = 900;
+	$width = 300;
 	$height = 200;
 	$im = imagecreatetruecolor($width, $height);
 
@@ -145,8 +145,7 @@ function generateLabelImage($brand, $mrp, $productType, $code, $size, $color, $w
 
 	// ✅ Barcode should ONLY contain product code
 	$generator = new BarcodeGeneratorPNG();
-	$barcodeContent = "$brand|$mrp|$code|$size|$color";
-	$barcodeData = $generator->getBarcode($barcodeContent, $generator::TYPE_CODE_128, 2.5, 80);
+	$barcodeData = $generator->getBarcode($code, $generator::TYPE_CODE_128, 2.5, 80);
 	$barcodeImg = imagecreatefromstring($barcodeData);
 
 	// ✅ Brand Logo
