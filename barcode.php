@@ -14,45 +14,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
 
     if ($fileTmpPath) {
         try {
+
             $spreadsheet = IOFactory::load($fileTmpPath);
             $sheet = $spreadsheet->getActiveSheet();
-            $rows = $sheet->toArray();
 
-            $generator = new BarcodeGeneratorPNG();
+            // Get the last row with actual data
+            $highestRow = $sheet->getHighestDataRow();
 
             $barcodeDir = __DIR__ . "/storage/barcodes/";
             if (!is_dir($barcodeDir)) {
                 mkdir($barcodeDir, 0777, true);
             }
 
-            // Skip header row
-            for ($i = 1; $i < count($rows); $i++) {
-                $design_name = trim($rows[$i][0] ?? '');
-                $design_code = trim($rows[$i][1] ?? '');
-                $garment_type = trim($rows[$i][2] ?? '');
-                $garment_code = trim($rows[$i][3] ?? '');
-                $colour = trim($rows[$i][4] ?? '');
-                $colour_code = trim($rows[$i][5] ?? '');
-                $size = trim($rows[$i][6] ?? '');
-                $size_code = trim($rows[$i][7] ?? '');
-                $price = trim($rows[$i][8] ?? 0);
-                $mrp = trim($rows[$i][9] ?? 0);
-                $code = trim($rows[$i][10] ?? '');
-                $quantity = trim($rows[$i][11] ?? 0);
-                $hsn_no = trim($rows[$i][12] ?? '');
+            // Loop from row 2 (skip header) to last data row
+            for ($i = 2; $i <= $highestRow; $i++) {
+                $design_name = trim($sheet->getCell("A{$i}")->getCalculatedValue() ?? '');
+                $design_code = trim($sheet->getCell("B{$i}")->getCalculatedValue() ?? '');
+                $garment_type = trim($sheet->getCell("C{$i}")->getCalculatedValue() ?? '');
+                $garment_code = trim($sheet->getCell("D{$i}")->getCalculatedValue() ?? '');
+                $colour = trim($sheet->getCell("E{$i}")->getCalculatedValue() ?? '');
+                $colour_code = trim($sheet->getCell("F{$i}")->getCalculatedValue() ?? '');
+                $size = trim($sheet->getCell("G{$i}")->getCalculatedValue() ?? '');
+                $size_code = trim($sheet->getCell("H{$i}")->getCalculatedValue() ?? '');
+                $price = trim($sheet->getCell("I{$i}")->getCalculatedValue() ?? 0);
+                $mrp = trim($sheet->getCell("J{$i}")->getCalculatedValue() ?? 0);
+                $code = trim($sheet->getCell("K{$i}")->getCalculatedValue() ?? '');
+                $quantity = trim($sheet->getCell("L{$i}")->getCalculatedValue() ?? 0);
+                $hsn_no = trim($sheet->getCell("M{$i}")->getCalculatedValue() ?? '');
 
-                // If code is missing, generate one automatically
+
+                // Skip completely empty rows
+                if (
+                    $design_name === '' && $design_code === '' && $garment_type === '' &&
+                    $garment_code === '' && $colour === '' && $colour_code === '' &&
+                    $size === '' && $size_code === '' && $price == 0 && $mrp == 0 &&
+                    $code === '' && $quantity == 0 && $hsn_no === ''
+                ) {
+                    continue;
+                }
+
+                // Generate code if missing
                 if ($code === '') {
                     $code = "AUTO" . strtoupper(bin2hex(random_bytes(3)));
                 }
 
-                // Generate random PNG file name
+                // Generate barcode file
                 $randomFile = uniqid('barcode_', true) . "_" . bin2hex(random_bytes(5)) . ".png";
                 $barcodeFile = $barcodeDir . $randomFile;
 
-                // Generate barcode image
                 generateLabelImage(
-                    "Fireknøtt",  // Brand
+                    "Fireknøtt",
                     $price,
                     $garment_type,
                     $code,
@@ -64,10 +75,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
 
                 // Insert into DB
                 $stmt = $pdo->prepare("
-                    INSERT INTO products 
-                    (design_name, design_code, garment_type, garment_code, colour, colour_code, size, size_code, price, mrp, code, quantity, hsn_no, barcode_path)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
+            INSERT INTO products 
+            (design_name, design_code, garment_type, garment_code, colour, colour_code, size, size_code, price, mrp, code, quantity, hsn_no, barcode_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
 
                 $stmt->execute([
                     $design_name,
@@ -115,7 +126,7 @@ $totalPages = ceil($total / $limit);
 <html>
 
 <head>
-    <title>Sales Report</title>
+    <title>Barcode Generator</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -510,7 +521,7 @@ $totalPages = ceil($total / $limit);
     </div>
 
     <script>
-        
+
         const form = document.querySelector("form");
         const uploadBtn = document.getElementById("uploadBtn");
         const btnText = document.getElementById("btnText");
