@@ -1,133 +1,114 @@
 <?php
 include 'functions.php';
 require 'vendor/autoload.php';
-
 require 'db.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use Picqer\Barcode\BarcodeGeneratorPNG;
 
 $message = "";
 
+// Delete Vendor if action=delete
+if (isset($_GET['delete_id'])) {
+    $delete_id = intval($_GET['delete_id']);
+    $stmt = $pdo->prepare("DELETE FROM vendor_master WHERE id = ?");
+    $stmt->execute([$delete_id]);
+    $message = "✅ Vendor deleted successfully!";
+}
+
+// Handle Excel Import
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
     $fileTmpPath = $_FILES['excel_file']['tmp_name'];
 
-    if ($fileTmpPath) {
-        try {
+    try {
+        $spreadsheet = IOFactory::load($fileTmpPath);
+        $sheet = $spreadsheet->getSheetByName('Vendor');
+        $highestRow = $sheet->getHighestDataRow();
 
-            $spreadsheet = IOFactory::load($fileTmpPath);
-            $sheet = $spreadsheet->getActiveSheet();
+        for ($i = 2; $i <= $highestRow; $i++) {
+            $vendor_name = trim($sheet->getCell("A{$i}")->getValue());
+            $contact_person_name = trim($sheet->getCell("B{$i}")->getValue());
+            $email = trim($sheet->getCell("C{$i}")->getValue());
+            $phone = trim($sheet->getCell("D{$i}")->getValue());
+            $address = trim($sheet->getCell("E{$i}")->getValue());
+            $remarks = trim($sheet->getCell("F{$i}")->getValue());
 
-            // Get the last row with actual data
-            $highestRow = $sheet->getHighestDataRow();
+            if ($vendor_name === "")
+                continue;
 
-            $barcodeDir = __DIR__ . "/storage/barcodes/";
-            if (!is_dir($barcodeDir)) {
-                mkdir($barcodeDir, 0777, true);
-            }
-
-            // Loop from row 2 (skip header) to last data row
-            for ($i = 2; $i <= $highestRow; $i++) {
-                $design_name = trim($sheet->getCell("A{$i}")->getCalculatedValue() ?? '');
-                $design_code = trim($sheet->getCell("B{$i}")->getCalculatedValue() ?? '');
-                $garment_type = trim($sheet->getCell("C{$i}")->getCalculatedValue() ?? '');
-                $garment_code = trim($sheet->getCell("D{$i}")->getCalculatedValue() ?? '');
-                $colour = trim($sheet->getCell("E{$i}")->getCalculatedValue() ?? '');
-                $colour_code = trim($sheet->getCell("F{$i}")->getCalculatedValue() ?? '');
-                $size = trim($sheet->getCell("G{$i}")->getCalculatedValue() ?? '');
-                $size_code = trim($sheet->getCell("H{$i}")->getCalculatedValue() ?? '');
-                $price = trim($sheet->getCell("I{$i}")->getCalculatedValue() ?? 0);
-                $mrp = trim($sheet->getCell("J{$i}")->getCalculatedValue() ?? 0);
-                $code = trim($sheet->getCell("K{$i}")->getCalculatedValue() ?? '');
-                $quantity = trim($sheet->getCell("L{$i}")->getCalculatedValue() ?? 0);
-                $hsn_no = trim($sheet->getCell("M{$i}")->getCalculatedValue() ?? '');
-
-
-                // Skip completely empty rows
-                if (
-                    $design_name === '' && $design_code === '' && $garment_type === '' &&
-                    $garment_code === '' && $colour === '' && $colour_code === '' &&
-                    $size === '' && $size_code === '' && $price == 0 && $mrp == 0 &&
-                    $code === '' && $quantity == 0 && $hsn_no === ''
-                ) {
-                    continue;
-                }
-
-                // Generate code if missing
-                if ($code === '') {
-                    $code = "AUTO" . strtoupper(bin2hex(random_bytes(3)));
-                }
-
-                // Generate barcode file
-                $randomFile = uniqid('barcode_', true) . "_" . bin2hex(random_bytes(5)) . ".png";
-                $barcodeFile = $barcodeDir . $randomFile;
-
-                generateLabelImage(
-                    "Fireknøtt",
-                    $price,
-                    $garment_type,
-                    $code,
-                    $size,
-                    $colour,
-                    "www.fireknott.com",
-                    $barcodeFile
-                );
-
-                // Insert into DB
-                $stmt = $pdo->prepare("
-            INSERT INTO products 
-            (design_name, design_code, garment_type, garment_code, colour, colour_code, size, size_code, price, mrp, code, quantity, hsn_no, barcode_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-                $stmt->execute([
-                    $design_name,
-                    $design_code,
-                    $garment_type,
-                    $garment_code,
-                    $colour,
-                    $colour_code,
-                    $size,
-                    $size_code,
-                    $price,
-                    $mrp,
-                    $code,
-                    $quantity,
-                    $hsn_no,
-                    "storage/barcodes/" . $randomFile
-                ]);
-            }
-
-            $message = "✅ All products imported & barcodes generated successfully!";
-        } catch (Exception $e) {
-            $message = "❌ Error: " . $e->getMessage();
+            $stmt = $pdo->prepare("INSERT INTO vendor_master (vendor_name, contact_person_name, email, phone, address, remarks) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$vendor_name, $contact_person_name, $email, $phone, $address, $remarks]);
         }
-    } else {
-        $message = "❌ File not uploaded.";
+        $message = "✅ Vendor sheet imported successfully!";
+    } catch (Exception $e) {
+        $message = "❌ Error: " . $e->getMessage();
     }
 }
 
-// Fetch with pagination
-$limit = 10;
-$page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+// Pagination
+$limit = 10; // records per page
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($page - 1) * $limit;
 
-$total = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
-$stmt = $pdo->prepare("SELECT * FROM products ORDER BY id DESC LIMIT ? OFFSET ?");
-$stmt->bindValue(1, $limit, PDO::PARAM_INT);
-$stmt->bindValue(2, $offset, PDO::PARAM_INT);
+// Get total records
+$totalStmt = $pdo->query("SELECT COUNT(*) FROM vendor_master");
+$totalRecords = $totalStmt->fetchColumn();
+$totalPages = ceil($totalRecords / $limit);
+
+// Get vendors with limit
+$stmt = $pdo->prepare("SELECT * FROM vendor_master ORDER BY id DESC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
-$products = $stmt->fetchAll();
-
-$totalPages = ceil($total / $limit);
+$vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!DOCTYPE html>
 <html>
 
 <head>
-    <title>Barcode Generator</title>
+    <title>Vendor Master</title>
     <style>
+        /* keep your existing CSS */
+        td {
+            font-size: 12px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            background: #e53935;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .action-btn:hover {
+            background: #c62828;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            padding: 8px 14px;
+            margin: 0 5px;
+            background: #1e88e5;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .pagination a.active {
+            background: #1565c0;
+        }
+
+        .pagination a:hover {
+            background: #0d47a1;
+        }
+
+
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -410,8 +391,6 @@ $totalPages = ceil($total / $limit);
             display: none !important;
         }
 
-
-        /* Dropdown styles */
         .dropdown {
             position: relative;
             display: inline-block;
@@ -430,6 +409,7 @@ $totalPages = ceil($total / $limit);
             z-index: 1000;
             border-radius: 6px;
             overflow: hidden;
+            right: -34px;
         }
 
         .dropdown-content a {
@@ -438,6 +418,8 @@ $totalPages = ceil($total / $limit);
             text-decoration: none;
             display: block;
             font-weight: normal;
+            margin: 10px;
+            text-align: center;
         }
 
         .dropdown-content a:hover {
@@ -451,7 +433,6 @@ $totalPages = ceil($total / $limit);
 </head>
 
 <body>
-
     <div class="navbar">
         <div>
             <img src="https://fireknott.com/cdn/shop/files/Fireknott-Logo-Black-ori_360x.webp?v=1729241431" alt="Logo"
@@ -461,10 +442,9 @@ $totalPages = ceil($total / $limit);
             <a href="orders.php">Home</a>
             <a href="monthly_sales.php">Monthly Sales</a>
             <a href="tax_rate.php">Tax Rates</a>
-            <a href="barcode.php">Barcode</a>
 
             <span class="dropdown">
-                <a>Barcode ▾</a>
+                <a>Barcodes Management ▾</a>
                 <div class="dropdown-content">
                     <a href="design_master.php">Design Master</a>
                     <a href="vendor_master.php">Vendor Master</a>
@@ -475,16 +455,7 @@ $totalPages = ceil($total / $limit);
     </div>
 
     <div class="container">
-
-        <h2>Import Products & Generate Barcodes</h2>
-        <p class="instructions">
-            Select your product data file (.xlsx or .xls) and click the button to import all products and create
-            barcodes automatically. The generated list will appear below.
-        </p>
-        <?php if ($message): ?>
-            <div class="message"><?= htmlspecialchars($message) ?></div>
-        <?php endif; ?>
-
+        <h2>Upload Vendor Sheet</h2>
         <form method="post" enctype="multipart/form-data">
             <div class="form-group">
                 <input type="file" name="excel_file" accept=".xlsx,.xls" required>
@@ -494,94 +465,56 @@ $totalPages = ceil($total / $limit);
                 </button>
             </div>
         </form>
+        <p><?= $message ?></p>
 
-        <?php if (count($products) > 0): ?>
-            <h3>Generated Barcodes</h3>
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>Design Name</th>
-                    <th>Design Code</th>
-                    <th>Garment</th>
-                    <th>Colour</th>
-                    <th>Size</th>
-                    <th>Price</th>
-                    <th>MRP</th>
-                    <th>Code</th>
-                    <th>Quantity</th>
-                    <th>HSN</th>
-                    <th>Barcode</th>
-                </tr>
-                <?php foreach ($products as $row): ?>
+        <table border="1">
+            <tr>
+                <th>ID</th>
+                <th>Vendor Name</th>
+                <th>Contact Person Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Remarks</th>
+                <th>Action</th>
+            </tr>
+            <?php if (count($vendors) > 0): ?>
+                <?php foreach ($vendors as $row): ?>
                     <tr>
                         <td><?= $row['id'] ?></td>
-                        <td><?= htmlspecialchars($row['design_name']) ?></td>
-                        <td><?= htmlspecialchars($row['design_code']) ?></td>
-                        <td><?= htmlspecialchars($row['garment_type']) ?></td>
-                        <td><?= htmlspecialchars($row['colour']) ?></td>
-                        <td><?= htmlspecialchars($row['size']) ?></td>
-                        <td><?= htmlspecialchars($row['price']) ?></td>
-                        <td><?= htmlspecialchars($row['mrp']) ?></td>
-                        <td><?= htmlspecialchars($row['code']) ?></td>
-                        <td><?= htmlspecialchars($row['quantity']) ?></td>
-                        <td><?= htmlspecialchars($row['hsn_no']) ?></td>
-                        <td><a href="<?= $row['barcode_path'] ?>" target="_blank"><img src="<?= $row['barcode_path'] ?>"
-                                    width="150"></a></td>
+                        <td><?= htmlspecialchars($row['vendor_name']) ?></td>
+                        <td><?= htmlspecialchars($row['contact_person_name']) ?></td>
+                        <td><?= htmlspecialchars($row['email']) ?></td>
+                        <td><?= htmlspecialchars($row['phone']) ?></td>
+                        <td><?= htmlspecialchars($row['address']) ?></td>
+                        <td><?= htmlspecialchars($row['remarks']) ?></td>
+                        <td>
+                            <a href="?delete_id=<?= $row['id'] ?>" class="action-btn"
+                                onclick="return confirm('Delete this vendor?')">Delete</a>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
-            </table>
+            <?php else: ?>
+                <tr>
+                    <td colspan="8">No Data found. </td>
+                </tr>
+            <?php endif; ?>
 
-            <div class="pagination" style="text-align:center; margin-top:20px;">
-                <?php if ($page > 1): ?>
-                    <a class="pagination-btn" href="?page=<?= $page - 1 ?>">Previous</a>
-                <?php endif; ?>
+        </table>
 
-                <?php
-                $range = 2;
-                $start = max(1, $page - $range);
-                $end = min($totalPages, $page + $range);
-
-                if ($start > 1) {
-                    echo '<a class="pagination-btn" href="?page=1">1</a>';
-                    if ($start > 2)
-                        echo ' ... ';
-                }
-
-                for ($p = $start; $p <= $end; $p++): ?>
-                    <a class="pagination-btn <?= $p == $page ? 'btn-clear' : '' ?>" href="?page=<?= $p ?>"><?= $p ?></a>
-                <?php endfor;
-
-                if ($end < $totalPages) {
-                    if ($end < $totalPages - 1)
-                        echo ' ... ';
-                    echo '<a class="pagination-btn" href="?page=' . $totalPages . '">' . $totalPages . '</a>';
-                }
-                ?>
-
-                <?php if ($page < $totalPages): ?>
-                    <a class="pagination-btn" href="?page=<?= $page + 1 ?>">Next</a>
-                <?php endif; ?>
-            </div>
-
-        <?php endif; ?>
-
+        <!-- Pagination -->
+        <div class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=<?= $page - 1 ?>">&laquo; Prev</a>
+            <?php endif; ?>
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <a href="?page=<?= $i ?>" class="<?= $i == $page ? 'active' : '' ?>"><?= $i ?></a>
+            <?php endfor; ?>
+            <?php if ($page < $totalPages): ?>
+                <a href="?page=<?= $page + 1 ?>">Next &raquo;</a>
+            <?php endif; ?>
+        </div>
     </div>
-
-    <script>
-
-        const form = document.querySelector("form");
-        const uploadBtn = document.getElementById("uploadBtn");
-        const btnText = document.getElementById("btnText");
-        const btnSpinner = document.getElementById("btnSpinner");
-
-        form.addEventListener("submit", function () {
-            uploadBtn.disabled = true;
-            btnText.textContent = "Uploading...";
-            btnSpinner.classList.remove("hidden");
-        });
-
-    </script>
-
 
 </body>
 

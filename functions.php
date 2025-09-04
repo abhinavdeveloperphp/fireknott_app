@@ -132,7 +132,7 @@ function shopify_gql_call($token, $shop, $query = array())
 
 function generateLabelImage($brand, $mrp, $productType, $code, $size, $color, $website, $savePath)
 {
-	$width = 300;
+	$width = 400;
 	$height = 200;
 	$im = imagecreatetruecolor($width, $height);
 
@@ -143,12 +143,14 @@ function generateLabelImage($brand, $mrp, $productType, $code, $size, $color, $w
 	// Fill background
 	imagefill($im, 0, 0, $white);
 
-	// ✅ Barcode should ONLY contain product code
+	// Barcode should ONLY contain product code
 	$generator = new BarcodeGeneratorPNG();
-	$barcodeData = $generator->getBarcode($code, $generator::TYPE_CODE_128, 2.5, 80);
+	$eanCode = preg_replace('/\D/', '', $code);
+	$eanCode = str_pad(substr($eanCode, 0, 12), 12, '0', STR_PAD_LEFT);
+	$barcodeData = $generator->getBarcode($eanCode, $generator::TYPE_EAN_13, 2.5, 80);
 	$barcodeImg = imagecreatefromstring($barcodeData);
 
-	// ✅ Brand Logo
+	// Brand Logo
 	$logoPath = __DIR__ . "/logo.png";
 	if (file_exists($logoPath)) {
 		$logoImg = imagecreatefrompng($logoPath);
@@ -195,6 +197,11 @@ function generateLabelImage($brand, $mrp, $productType, $code, $size, $color, $w
 	imagedestroy($barcodeImg);
 }
 
-
-
+function getBaseUrl()
+{
+	$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+	$host = $_SERVER['HTTP_HOST'];
+	$script = str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
+	return "$protocol$host$script";
+}
 

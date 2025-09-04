@@ -25,7 +25,8 @@ if (!empty($search)) {
 $combinedQuery = implode(' AND ', $queryParts);
 $afterCursor = $pageCursor ? "after: \"$pageCursor\", " : "";
 
-function getAllOrders($token, $shop, $afterCursor, $combinedQuery) {
+function getAllOrders($token, $shop, $afterCursor, $combinedQuery)
+{
     $queryString = $combinedQuery ? "query: \"$combinedQuery\"" : "";
 
     $query = [
@@ -102,6 +103,7 @@ $nextCursor = $ordersData['data']['orders']['pageInfo']['endCursor'];
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Orders Dashboard</title>
@@ -248,7 +250,8 @@ $nextCursor = $ordersData['data']['orders']['pageInfo']['endCursor'];
                 margin-left: 10px;
             }
 
-            th, td {
+            th,
+            td {
                 font-size: 14px;
                 padding: 10px;
             }
@@ -257,104 +260,157 @@ $nextCursor = $ordersData['data']['orders']['pageInfo']['endCursor'];
                 padding: 15px;
             }
         }
+
+        /* Dropdown styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown a {
+            cursor: pointer;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 6px;
+            overflow: hidden;
+            right: -34px;
+        }
+
+        .dropdown-content a {
+            color: #333 !important;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-weight: normal;
+            margin: 10px;
+            text-align: center;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="navbar">
-    <div>
-        <img src="https://fireknott.com/cdn/shop/files/Fireknott-Logo-Black-ori_360x.webp?v=1729241431" alt="Logo" class="logo">
-    </div>
-    <div class="nav-links">
-        <a href="orders.php">Home</a>
-        <a href="monthly_sales.php">Monthly Sales</a>
-        <a href="tax_rate.php">Tax Rates</a>
-        <a href="barcode.php">Barcode</a>
-    </div>
-</div>
-
-<div class="container">
-    <h1>Orders</h1>
-
-    <form class="filter-form" method="GET">
+    <div class="navbar">
         <div>
-            <label for="filter">Filter: </label>
-            <select name="filter" id="filter">
-                <option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>All</option>
-                <option value="refunded" <?= $filter === 'refunded' ? 'selected' : '' ?>>Refunded</option>
-                <!-- <option value="cancelled" <?= $filter === 'cancelled' ? 'selected' : '' ?>>Cancelled</option> -->
-            </select>
+            <img src="https://fireknott.com/cdn/shop/files/Fireknott-Logo-Black-ori_360x.webp?v=1729241431" alt="Logo"
+                class="logo">
         </div>
-        <div>
-            <label for="search">Search: </label>
-            <input type="text" name="search" placeholder="Order ID" value="<?= htmlspecialchars($search) ?>">
+        <div class="nav-links">
+            <a href="orders.php">Home</a>
+            <a href="monthly_sales.php">Monthly Sales</a>
+            <a href="tax_rate.php">Tax Rates</a>
+            <span class="dropdown">
+                <a>Barcodes Management▾</a>
+                <div class="dropdown-content">
+                    <a href="design_master.php">Design Master</a>
+                    <a href="vendor_master.php">Vendor Master</a>
+                    <a href="create_order.php">Create Order</a>
+                </div>
+            </span>
         </div>
-        <button type="submit">Apply</button>
-    </form>
-
-    <table>
-        <thead>
-        <tr>
-            <th>Order ID</th>
-            <th>Customer</th>
-            <th>Date</th>
-            <th>Total</th>
-            <th>Paid</th>
-            <th>Refunded</th>
-            <th>Net Payment</th>
-            <th>Payment Status</th>
-            <th>Status</th>
-            <th>Invoice</th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($orders as $order): 
-            $node = $order['node'];
-            $totalAmount = floatval($node['totalPriceSet']['presentmentMoney']['amount']);
-            $currency = $node['totalPriceSet']['presentmentMoney']['currencyCode'];
-
-            $paidAmount = 0;
-            foreach ($node['transactions'] as $txn) {
-                if ($txn['kind'] === 'SALE' && $txn['status'] === 'SUCCESS') {
-                    $paidAmount += floatval($txn['amount']);
-                }
-            }
-
-            $refunded = 0;
-            foreach ($node['refunds'] as $refund) {
-                foreach ($refund['transactions']['edges'] as $txnEdge) {
-                    $refunded += floatval($txnEdge['node']['amount']);
-                }
-            }
-
-            $remaining = $paidAmount - $refunded;
-        ?>
-        <tr>
-            <td><?= htmlspecialchars($node['name']) ?></td>
-            <td><?= htmlspecialchars($node['customer']['firstName'] . ' ' . $node['customer']['lastName']) ?></td>
-            <td><?= date("Y-m-d", strtotime($node['createdAt'])) ?></td>
-            <td><?= number_format($totalAmount, 2) . ' ' . $currency ?></td>
-            <td><?= number_format($paidAmount, 2) . ' ' . $currency ?></td>
-            <td><?= number_format($refunded, 2) . ' ' . $currency ?></td>
-            <td><?= number_format($remaining, 2) . ' ' . $currency ?></td>
-            <td><?= htmlspecialchars($node['displayFinancialStatus']) ?></td>
-            <td><?= htmlspecialchars($node['displayFulfillmentStatus']) ?></td>
-            <td>
-                <?php if ($node['displayFinancialStatus'] === 'PAID' || $node['displayFinancialStatus'] === 'PARTIALLY_REFUNDED'): ?>
-                    <a class="btn" href="invoice.php?order_id=<?= urlencode(str_replace('gid://shopify/Order/', '', $node['id'])) ?>">View Invoice</a>
-                <?php endif; ?>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-
-    <div class="pagination">
-        <?php if ($hasNextPage): ?>
-            <a href="?<?= http_build_query(array_merge($_GET, ['cursor' => $nextCursor])) ?>">Next Page</a>
-        <?php endif; ?>
     </div>
-</div>
+
+    <div class="container">
+        <h1>Orders</h1>
+
+        <form class="filter-form" method="GET">
+            <div>
+                <label for="filter">Filter: </label>
+                <select name="filter" id="filter">
+                    <option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>All</option>
+                    <option value="refunded" <?= $filter === 'refunded' ? 'selected' : '' ?>>Refunded</option>
+                    <!-- <option value="cancelled" <?= $filter === 'cancelled' ? 'selected' : '' ?>>Cancelled</option> -->
+                </select>
+            </div>
+            <div>
+                <label for="search">Search: </label>
+                <input type="text" name="search" placeholder="Order ID" value="<?= htmlspecialchars($search) ?>">
+            </div>
+            <button type="submit">Apply</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Refunded</th>
+                    <th>Net Payment</th>
+                    <th>Payment Status</th>
+                    <th>Status</th>
+                    <th>Invoice</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($orders as $order):
+                    $node = $order['node'];
+                    $totalAmount = floatval($node['totalPriceSet']['presentmentMoney']['amount']);
+                    $currency = $node['totalPriceSet']['presentmentMoney']['currencyCode'];
+
+                    $paidAmount = 0;
+                    foreach ($node['transactions'] as $txn) {
+                        if ($txn['kind'] === 'SALE' && $txn['status'] === 'SUCCESS') {
+                            $paidAmount += floatval($txn['amount']);
+                        }
+                    }
+
+                    $refunded = 0;
+                    foreach ($node['refunds'] as $refund) {
+                        foreach ($refund['transactions']['edges'] as $txnEdge) {
+                            $refunded += floatval($txnEdge['node']['amount']);
+                        }
+                    }
+
+                    $remaining = $paidAmount - $refunded;
+                    ?>
+                    <tr>
+                        <td><?= htmlspecialchars($node['name']) ?></td>
+                        <td><?= htmlspecialchars($node['customer']['firstName'] . ' ' . $node['customer']['lastName']) ?>
+                        </td>
+                        <td><?= date("Y-m-d", strtotime($node['createdAt'])) ?></td>
+                        <td><?= number_format($totalAmount, 2) . ' ' . $currency ?></td>
+                        <td><?= number_format($paidAmount, 2) . ' ' . $currency ?></td>
+                        <td><?= number_format($refunded, 2) . ' ' . $currency ?></td>
+                        <td><?= number_format($remaining, 2) . ' ' . $currency ?></td>
+                        <td><?= htmlspecialchars($node['displayFinancialStatus']) ?></td>
+                        <td><?= htmlspecialchars($node['displayFulfillmentStatus']) ?></td>
+                        <td>
+                            <?php if ($node['displayFinancialStatus'] === 'PAID' || $node['displayFinancialStatus'] === 'PARTIALLY_REFUNDED'): ?>
+                                <a class="btn"
+                                    href="invoice.php?order_id=<?= urlencode(str_replace('gid://shopify/Order/', '', $node['id'])) ?>">View
+                                    Invoice</a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            <?php if ($hasNextPage): ?>
+                <a href="?<?= http_build_query(array_merge($_GET, ['cursor' => $nextCursor])) ?>">Next Page</a>
+            <?php endif; ?>
+        </div>
+    </div>
 
 </body>
+
 </html>
