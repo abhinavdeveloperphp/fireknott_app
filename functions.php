@@ -147,11 +147,11 @@ function generateLabelImage($brand, $mrp, $productType, $code, $size, $color, $w
 	$generator = new BarcodeGeneratorPNG();
 	$eanCode = preg_replace('/\D/', '', $code);
 	$eanCode = str_pad(substr($eanCode, 0, 12), 12, '0', STR_PAD_LEFT);
-	$barcodeData = $generator->getBarcode($eanCode, $generator::TYPE_EAN_13, 2.5, 80);
+	$barcodeData = $generator->getBarcode($eanCode, $generator::TYPE_EAN_13, 3, 80);
 	$barcodeImg = imagecreatefromstring($barcodeData);
 
 	// Brand Logo
-	$logoPath = __DIR__ . "/logo.png";
+	$logoPath = __DIR__ . "/fireknott_logo.png";
 	if (file_exists($logoPath)) {
 		$logoImg = imagecreatefrompng($logoPath);
 		$logoW = imagesx($logoImg);

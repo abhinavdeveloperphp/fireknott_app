@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rows'])) {
         $barcodeFile = $barcodeDir . $randomFile;
 
         generateLabelImage(
-            "Fireknøtt",
+            "Fireknott",
             $price,
             $garment_type,
             $code,
