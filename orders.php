@@ -285,12 +285,12 @@ $nextCursor = $ordersData['data']['orders']['pageInfo']['endCursor'];
 
         .dropdown-content a {
             color: #333 !important;
-            padding: 12px 16px;
+            padding: 10px 18px;
             text-decoration: none;
             display: block;
             font-weight: normal;
-            margin: 10px;
-            text-align: center;
+            margin: 0;
+            text-align: left;
         }
 
         .dropdown-content a:hover {

@@ -29,20 +29,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             $contact_person_name = trim($sheet->getCell("B{$i}")->getValue());
             $email = trim($sheet->getCell("C{$i}")->getValue());
             $phone = trim($sheet->getCell("D{$i}")->getValue());
-            $address = trim($sheet->getCell("E{$i}")->getValue());
-            $remarks = trim($sheet->getCell("F{$i}")->getValue());
+            $pan = trim($sheet->getCell("E{$i}")->getValue());
+            $address = trim($sheet->getCell("F{$i}")->getValue());
+            $remarks = trim($sheet->getCell("G{$i}")->getValue());
 
             if ($vendor_name === "")
                 continue;
 
-            $stmt = $pdo->prepare("INSERT INTO vendor_master (vendor_name, contact_person_name, email, phone, address, remarks) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$vendor_name, $contact_person_name, $email, $phone, $address, $remarks]);
+            $stmt = $pdo->prepare("INSERT INTO vendor_master (vendor_name, pan, contact_person_name, email, phone, address, remarks) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$vendor_name, $pan, $contact_person_name, $email, $phone, $address, $remarks]);
         }
         $message = "✅ Vendor sheet imported successfully!";
     } catch (Exception $e) {
         $message = "❌ Error: " . $e->getMessage();
     }
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vendor_name'])) {
+    $id = isset($_POST['vendor_id']) ? intval($_POST['vendor_id']) : 0;
+    $vendor_name = $_POST['vendor_name'];
+    $pan = $_POST['pan'];
+    $contact_person_name = $_POST['contact_person_name'];
+    $email = $_POST['email'];
+    $phone = $_POST['phone'];
+    $address = $_POST['address'];
+    $remarks = $_POST['remarks'];
+
+    if ($id > 0) {
+        // 🔹 UPDATE existing vendor
+        $stmt = $pdo->prepare("UPDATE vendor_master 
+                               SET vendor_name=?, pan=?, contact_person_name=?, email=?, phone=?, address=?, remarks=? 
+                               WHERE id=?");
+        $stmt->execute([$vendor_name, $pan, $contact_person_name, $email, $phone, $address, $remarks, $id]);
+        $message = "✅ Vendor updated successfully!";
+    } else {
+        // 🔹 CREATE new vendor
+        $stmt = $pdo->prepare("INSERT INTO vendor_master 
+                               (vendor_name, pan, contact_person_name, email, phone, address, remarks) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$vendor_name, $pan, $contact_person_name, $email, $phone, $address, $remarks]);
+        $message = "✅ Vendor created successfully!";
+    }
+}
+
+
+
 
 // Pagination
 $limit = 10; // records per page
@@ -69,7 +100,7 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <style>
         /* keep your existing CSS */
         td {
-            font-size: 12px;
+            font-size: 16px;
         }
 
         .action-btn {
@@ -78,7 +109,8 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: white;
             text-decoration: none;
             border-radius: 6px;
-            font-size: 12px;
+            border: 0;
+            font-size: 16px;
         }
 
         .action-btn:hover {
@@ -142,7 +174,7 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1500px;
             margin: 40px auto;
             background: white;
             padding: 30px;
@@ -196,16 +228,15 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             font-size: 16px;
-            padding: 14px;
-            text-transform: uppercase;
+            padding: 12px;
             letter-spacing: 0.5px;
         }
 
         td {
             border: 1px solid #e6e6e6;
-            padding: 14px;
-            text-align: center;
-            font-size: 10px;
+            padding: 12px;
+            font-size: 16px;
+            text-transform: capitalize;
         }
 
         tr:nth-child(even) {
@@ -227,11 +258,7 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         form {
             max-width: 600px;
-            margin: 20px auto 30px;
-            background: #fafafa;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            margin: 0px;
         }
 
         form label,
@@ -284,7 +311,8 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .btn {
-            padding: 8px 40px;
+            font-size: 16px;
+            padding: 10px 40px;
             background-color: #1e88e5;
             color: white;
             border: none;
@@ -339,8 +367,9 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         input[type=file] {
             display: block;
-            margin: 10px auto;
-            padding: 10px;
+            margin: 0px;
+            font-size: 16px;
+            padding: 5px 10px;
             border: 2px solid #007bff;
             border-radius: 8px;
             cursor: pointer;
@@ -360,7 +389,11 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .form-group {
+            position: relative;
             display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
         }
 
         .spinner {
@@ -414,20 +447,46 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .dropdown-content a {
             color: #333 !important;
-            padding: 12px 16px;
+            padding: 10px 18px;
             text-decoration: none;
             display: block;
             font-weight: normal;
-            margin: 10px;
-            text-align: center;
+            margin: 0;
+            text-align: left;
         }
 
         .dropdown-content a:hover {
             background-color: #f1f1f1;
         }
 
+        td .action-btns {
+            display: flex;
+            align-items: center;
+            justify-content: start;
+        }
+
+        .form-button {
+            background: #fafafa;
+            padding: 20px;
+            margin-top: :20px;
+            border-radius: 8px;
+            border: 1px solid #eeeeeeff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         .dropdown:hover .dropdown-content {
             display: block;
+        }
+
+        .responsive-table table {
+            min-width: 1360px;
+        }
+
+        .overflow-auto {
+            overflow: auto;
         }
     </style>
 </head>
@@ -456,51 +515,62 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <div class="container">
         <h2>Upload Vendor Sheet</h2>
-        <form method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <input type="file" name="excel_file" accept=".xlsx,.xls" required>
-                <button type="submit" class="btn" id="uploadBtn">
-                    <span id="btnText">Upload & Generate</span>
-                    <span id="btnSpinner" class="spinner hidden"></span>
-                </button>
-            </div>
-        </form>
+        <div class="form-button">
+            <form method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <input type="file" name="excel_file" accept=".xlsx,.xls" required>
+                    <button type="submit" class="btn" id="uploadBtn">
+                        <span id="btnText">Upload & Generate</span>
+                        <span id="btnSpinner" class="spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
+            <button class="btn" onclick="openModal('create')">+ Add New Vendor</button>
+        </div>
         <p><?= $message ?></p>
-
-        <table border="1">
-            <tr>
-                <th>ID</th>
-                <th>Vendor Name</th>
-                <th>Contact Person Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Address</th>
-                <th>Remarks</th>
-                <th>Action</th>
-            </tr>
-            <?php if (count($vendors) > 0): ?>
-                <?php foreach ($vendors as $row): ?>
-                    <tr>
-                        <td><?= $row['id'] ?></td>
-                        <td><?= htmlspecialchars($row['vendor_name']) ?></td>
-                        <td><?= htmlspecialchars($row['contact_person_name']) ?></td>
-                        <td><?= htmlspecialchars($row['email']) ?></td>
-                        <td><?= htmlspecialchars($row['phone']) ?></td>
-                        <td><?= htmlspecialchars($row['address']) ?></td>
-                        <td><?= htmlspecialchars($row['remarks']) ?></td>
-                        <td>
-                            <a href="?delete_id=<?= $row['id'] ?>" class="action-btn"
-                                onclick="return confirm('Delete this vendor?')">Delete</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
+        <div class="responsive-table overflow-auto">
+            <table border="1">
                 <tr>
-                    <td colspan="8">No Data found. </td>
+                    <th>ID</th>
+                    <th>Vendor Name</th>
+                    <th>Contact Person Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>PAN</th>
+                    <th>Address</th>
+                    <th>Remarks</th>
+                    <th>Action</th>
                 </tr>
-            <?php endif; ?>
+                <?php if (count($vendors) > 0): ?>
+                    <?php foreach ($vendors as $row): ?>
+                        <tr>
+                            <td><?= $row['id'] ?></td>
+                            <td><?= htmlspecialchars($row['vendor_name']) ?></td>
+                            <td><?= htmlspecialchars($row['contact_person_name']) ?></td>
+                            <td><?= htmlspecialchars($row['email']) ?></td>
+                            <td><?= htmlspecialchars($row['phone']) ?></td>
+                            <td><?= htmlspecialchars($row['pan']) ?></td>
+                            <td><?= htmlspecialchars($row['address']) ?></td>
+                            <td><?= htmlspecialchars($row['remarks']) ?></td>
+                            <td>
+                                <div class="action-btns">
 
-        </table>
+                                    <a href="?delete_id=<?= $row['id'] ?>" class="action-btn"
+                                        onclick="return confirm('Delete this vendor?')">Delete</a>
+                                    <button type="button" class="action-btn" style="background:#1e88e5;margin-left:5px;"
+                                        onclick="openModal('edit', <?= htmlspecialchars(json_encode($row)) ?>)">Edit</button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="8">No Data found. </td>
+                    </tr>
+                <?php endif; ?>
+
+            </table>
+        </div>
 
         <!-- Pagination -->
         <div class="pagination">
@@ -516,6 +586,91 @@ $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <?php include 'vendor_modal.php'; ?>
+
+    <script>
+        // Open modal (Create or Edit)
+        function openModal(mode, vendorData = null) {
+            const modal = document.getElementById("editModal");
+            const modalTitle = document.getElementById("modalTitle");
+            const form = document.getElementById("editForm");
+
+            if (mode === "create") {
+                modalTitle.textContent = "Add New Vendor";
+                form.reset(); // clear old data
+                document.getElementById("vendor_id").value = ""; // no ID for new
+            } else if (mode === "edit") {
+                modalTitle.textContent = "Edit Vendor";
+                // Fill form with vendor data
+                document.getElementById("vendor_id").value = vendorData.id;
+                document.getElementById("vendor_name").value = vendorData.vendor_name;
+                document.getElementById("pan").value = vendorData.pan;
+                document.getElementById("contact_person_name").value = vendorData.contact_person_name;
+                document.getElementById("email").value = vendorData.email;
+                document.getElementById("phone").value = vendorData.phone;
+                document.getElementById("address").value = vendorData.address;
+                document.getElementById("remarks").value = vendorData.remarks;
+            }
+
+            modal.classList.remove("hidden"); // show modal
+        }
+
+        // Close modal
+        function closeEditModal() {
+            document.getElementById("editModal").classList.add("hidden");
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            // Vendor Name
+            const vendorName = document.getElementById("vendor_name");
+            const vendorNameError = document.getElementById("vendor_name_error");
+            if (vendorName.value.trim() === "") {
+                vendorName.classList.add("error-input");
+                vendorNameError.style.display = "block";
+                isValid = false;
+            } else {
+                vendorName.classList.remove("error-input");
+                vendorNameError.style.display = "none";
+            }
+
+            // Email
+            const email = document.getElementById("email");
+            const emailError = document.getElementById("email_error");
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email.value.trim())) {
+                email.classList.add("error-input");
+                emailError.style.display = "block";
+                isValid = false;
+            } else {
+                email.classList.remove("error-input");
+                emailError.style.display = "none";
+            }
+
+            // Phone
+            const phone = document.getElementById("phone");
+            const phoneError = document.getElementById("phone_error");
+            const phoneRegex = /^[0-9]{7,15}$/;
+            if (!phoneRegex.test(phone.value.trim())) {
+                phone.classList.add("error-input");
+                phoneError.style.display = "block";
+                isValid = false;
+            } else {
+                phone.classList.remove("error-input");
+                phoneError.style.display = "none";
+            }
+
+            return isValid;
+        }
+
+        // Attach validation to form submit
+        document.getElementById("editForm").addEventListener("submit", function (e) {
+            if (!validateForm()) {
+                e.preventDefault(); // stop form submission if invalid
+            }
+        });
+    </script>
 </body>
 
 </html>

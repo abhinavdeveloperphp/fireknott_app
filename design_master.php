@@ -102,7 +102,7 @@ $designs = $stmt->fetchAll();
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1500px;
             margin: 40px auto;
             background: white;
             padding: 30px;
@@ -130,16 +130,16 @@ $designs = $stmt->fetchAll();
         th {
             background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
             color: white;
-            font-size: 14px;
+            font-size: 16px;
             padding: 12px;
-            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         td {
             border: 1px solid #e6e6e6;
             padding: 12px;
-            text-align: center;
-            font-size: 12px;
+            font-size: 16px;
+            text-transform: capitalize;
         }
 
         tr:nth-child(even) {
@@ -147,12 +147,12 @@ $designs = $stmt->fetchAll();
         }
 
         .btn-delete {
-            padding: 5px 10px;
+            padding: 6px 10px;
             background-color: #e53935;
             color: white;
             border: none;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 16px;
             cursor: pointer;
             text-decoration: none;
         }
@@ -209,12 +209,12 @@ $designs = $stmt->fetchAll();
 
         .dropdown-content a {
             color: #333 !important;
-            padding: 12px 16px;
+            padding: 10px 18px;
             text-decoration: none;
             display: block;
             font-weight: normal;
-            text-align: center;
-            margin: 10px;
+            margin: 0;
+            text-align: left;
         }
 
         .dropdown-content a:hover {
@@ -226,11 +226,12 @@ $designs = $stmt->fetchAll();
         }
 
         form {
-            max-width: 600px;
-            margin: 20px auto 30px;
+            margin: 20px auto 10px;
             background: #fafafa;
-            padding: 15px;
+            padding: 20px;
+            border: 1px solid #eeeeeeff;
             border-radius: 8px;
+            width: max-content;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
         }
 
@@ -244,8 +245,9 @@ $designs = $stmt->fetchAll();
 
         input[type=file] {
             display: block;
-            margin: 10px auto;
-            padding: 10px;
+            margin: 0px;
+            font-size: 16px;
+            padding: 5px 10px;
             border: 2px solid #007bff;
             border-radius: 8px;
             cursor: pointer;
@@ -254,6 +256,8 @@ $designs = $stmt->fetchAll();
 
         .form-group {
             display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .spinner {
@@ -285,7 +289,8 @@ $designs = $stmt->fetchAll();
         }
 
         .btn {
-            padding: 8px 40px;
+            font-size: 16px;
+            padding: 10px 40px;
             background-color: #1e88e5;
             color: white;
             border: none;
@@ -332,6 +337,14 @@ $designs = $stmt->fetchAll();
         .btn-clear:hover {
             background-color: #e0e0e0;
         }
+
+        .responsive-table table {
+            min-width: 1360px;
+        }
+
+        .overflow-auto {
+            overflow: auto;
+        }
     </style>
 </head>
 
@@ -367,51 +380,52 @@ $designs = $stmt->fetchAll();
             </div>
         </form>
         <p><?= $message ?></p>
-
-        <table>
-            <tr>
-                <th>ID</th>
-                <th>Design Name</th>
-                <th>Design Code</th>
-                <th>Garment Type</th>
-                <th>Garment Code</th>
-                <th>Size Name</th>
-                <th>Size Code</th>
-                <th>Colour</th>
-                <th>Code</th>
-                <th>Price</th>
-                <th>Quantity</th>
-                <th>HSN No</th>
-                <th>Action</th>
-            </tr>
-            <?php if (count($designs) > 0): ?>
-                <?php foreach ($designs as $row): ?>
-                    <tr>
-                        <td><?= $row['id'] ?></td>
-                        <td><?= htmlspecialchars($row['design_name']) ?></td>
-                        <td><?= htmlspecialchars($row['design_code']) ?></td>
-                        <td><?= htmlspecialchars($row['garment_type']) ?></td>
-                        <td><?= htmlspecialchars($row['garment_code']) ?></td>
-                        <td><?= htmlspecialchars($row['size_name']) ?></td>
-                        <td><?= htmlspecialchars($row['size_code']) ?></td>
-                        <td><?= htmlspecialchars($row['colour']) ?></td>
-                        <td><?= htmlspecialchars($row['code']) ?></td>
-                        <td><?= htmlspecialchars($row['price']) ?></td>
-                        <td><?= htmlspecialchars($row['quantity']) ?></td>
-                        <td><?= htmlspecialchars($row['hsn_no']) ?></td>
-                        <td>
-                            <a href="?delete_id=<?= $row['id'] ?>" class="btn-delete"
-                                onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-
-            <?php else: ?>
+        <div class="responsive-table overflow-auto">
+            <table>
                 <tr>
-                    <td colspan="13">No Data found.</td>
+                    <th>ID</th>
+                    <th>Design Name</th>
+                    <th>Design Code</th>
+                    <th>Garment Type</th>
+                    <th>Garment Code</th>
+                    <th>Size Name</th>
+                    <th>Size Code</th>
+                    <th>Colour</th>
+                    <th>Code</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>HSN No</th>
+                    <th>Action</th>
                 </tr>
-            <?php endif; ?>
-        </table>
+                <?php if (count($designs) > 0): ?>
+                    <?php foreach ($designs as $row): ?>
+                        <tr>
+                            <td><?= $row['id'] ?></td>
+                            <td><?= htmlspecialchars($row['design_name']) ?></td>
+                            <td><?= htmlspecialchars($row['design_code']) ?></td>
+                            <td><?= htmlspecialchars($row['garment_type']) ?></td>
+                            <td><?= htmlspecialchars($row['garment_code']) ?></td>
+                            <td><?= htmlspecialchars($row['size_name']) ?></td>
+                            <td><?= htmlspecialchars($row['size_code']) ?></td>
+                            <td><?= htmlspecialchars($row['colour']) ?></td>
+                            <td><?= htmlspecialchars($row['code']) ?></td>
+                            <td><?= htmlspecialchars($row['price']) ?></td>
+                            <td><?= htmlspecialchars($row['quantity']) ?></td>
+                            <td><?= htmlspecialchars($row['hsn_no']) ?></td>
+                            <td>
+                                <a href="?delete_id=<?= $row['id'] ?>" class="btn-delete"
+                                    onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+
+                <?php else: ?>
+                    <tr>
+                        <td colspan="13">No Data found.</td>
+                    </tr>
+                <?php endif; ?>
+            </table>
+        </div>
 
         <div class="pagination">
             <?php if ($page > 1): ?>

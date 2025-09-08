@@ -79,6 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rows'])) {
         ]);
     }
 
+    header("Location: create_order.php?success=1");
+    exit;
+
+}
+
+if (isset($_GET['success']) && $_GET['success'] == 1) {
     $message = "✅ Orders Saved Successfully!";
 }
 
@@ -114,7 +120,7 @@ $orders = $stmt->fetchAll();
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1500px;
             margin: 40px auto;
             background: white;
             padding: 25px;
@@ -145,16 +151,16 @@ $orders = $stmt->fetchAll();
         th {
             background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
             color: white;
-            text-transform: uppercase;
-            font-size: 14px;
+            font-size: 16px;
             padding: 12px;
+            letter-spacing: 0.5px;
         }
 
         td {
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            text-align: center;
-            font-size: 14px;
+            border: 1px solid #e6e6e6;
+            padding: 12px;
+            font-size: 16px;
+            text-transform: capitalize;
         }
 
         tr:nth-child(even) {
@@ -168,16 +174,17 @@ $orders = $stmt->fetchAll();
             padding: 6px;
             border: 1px solid #ccc;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .btn {
-            padding: 8px 18px;
+            font-size: 16px;
+            padding: 10px 18px;
             border: none;
+            border: 0;
             border-radius: 6px;
             background: #1e88e5;
             color: white;
-            font-size: 14px;
             cursor: pointer;
             transition: background 0.3s ease;
         }
@@ -293,12 +300,12 @@ $orders = $stmt->fetchAll();
 
         .dropdown-content a {
             color: #333 !important;
-            padding: 12px 16px;
+            padding: 10px 18px;
             text-decoration: none;
             display: block;
             font-weight: normal;
-            margin: 10px;
-            text-align: center;
+            margin: 0;
+            text-align: left;
         }
 
         .dropdown-content a:hover {
@@ -313,9 +320,10 @@ $orders = $stmt->fetchAll();
             padding: 6px 12px;
             background: #e53935;
             color: white;
+            border: 0;
             text-decoration: none;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 16px;
         }
 
         .action-btn:hover {
@@ -361,6 +369,70 @@ $orders = $stmt->fetchAll();
         .pagination a:hover {
             background: #0d47a1;
         }
+
+        .responsive-table table {
+            min-width: 1360px;
+        }
+
+        .overflow-auto {
+            overflow: auto;
+        }
+
+        .margin-btn {
+            margin: 10px 0 30px;
+        }
+
+        /* Container for the action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            /* Adjust spacing between buttons */
+            align-items: center;
+        }
+
+        /* Base button style */
+        .del-edit-btn {
+            text-decoration: none;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            /* Helps align icon and text */
+            align-items: center;
+            gap: 6px;
+            /* Space between icon and text */
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+            white-space: nowrap;
+        }
+
+        /* Print button style (blue) */
+        .btn-print {
+            background-color: #1e88e5;
+        }
+
+        .btn-print:hover {
+            background-color: #1565c0;
+            /* A slightly darker blue for hover */
+        }
+
+        /* Delete button style (red) */
+        .btn-delete {
+            background-color: #e53935;
+        }
+
+        .btn-delete:hover {
+            background-color: #c62828;
+            /* A slightly darker red for hover */
+        }
+
+        /* A subtle effect when the button is clicked */
+        .del-edit-btn:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 
@@ -390,7 +462,7 @@ $orders = $stmt->fetchAll();
         <h2>Create Order</h2>
 
         <!-- Create Order Form -->
-        <form method="post">
+        <form method="post" class="responsive-table overflow-auto">
             <table id="orderTable">
                 <tr>
                     <th>Vendor</th>
@@ -416,9 +488,12 @@ $orders = $stmt->fetchAll();
                     </tr>
                 <?php endif; ?>
             </table>
+
             <?php if (count($vendors) > 0 && count($designs) > 0): ?>
-                <button type="button" class="btn" onclick="addRow()">+ Add More</button>
-                <button type="submit" class="btn">Save Orders</button>
+                <div class="margin-btn">
+                    <button type="button" class="btn" onclick="addRow()">+ Add More</button>
+                    <button type="submit" class="btn">Save Orders</button>
+                </div>
             <?php endif; ?>
         </form>
         <p><?= $message ?></p>
@@ -426,7 +501,7 @@ $orders = $stmt->fetchAll();
         <hr>
         <h2>Saved Orders</h2>
         <div class="saved-orders">
-            <form method="post" action="print_pdf.php">
+            <form method="post" action="print_pdf.php" class="responsive-table overflow-auto">
                 <input type="hidden" name="select_all" id="selectAllInput" value="0">
                 <table>
                     <tr>
@@ -437,10 +512,17 @@ $orders = $stmt->fetchAll();
                         <th>ID</th>
                         <th>Vendor</th>
                         <th>Design</th>
-                        <th>Size</th>
+                        <th>Design Code</th>
+                        <th>Garment</th>
+                        <th>Garment Code</th>
                         <th>Colour</th>
+                        <th>Colour Code</th>
+                        <th>Size</th>
+                        <th>Size Code</th>
                         <th>Price</th>
+                        <th>Code</th>
                         <th>Quantity</th>
+                        <th>HSN Number</th>
                         <th>Barcode</th>
                         <th>Action</th>
                     </tr>
@@ -451,16 +533,34 @@ $orders = $stmt->fetchAll();
                                 <td><?= $o['id'] ?></td>
                                 <td><?= htmlspecialchars($o['vendor_name']) ?></td>
                                 <td><?= htmlspecialchars($o['design_name']) ?></td>
-                                <td><?= htmlspecialchars($o['size']) ?></td>
+                                <td><?= htmlspecialchars($o['design_code']) ?></td>
+                                <td><?= htmlspecialchars($o['garment_type']) ?></td>
+                                <td><?= htmlspecialchars($o['garment_code']) ?></td>
                                 <td><?= htmlspecialchars($o['colour']) ?></td>
-                                <td><?= $o['price'] ?></td>
-                                <td><?= $o['quantity'] ?></td>
+                                <td><?= htmlspecialchars($o['colour_code']) ?></td>
+                                <td><?= htmlspecialchars($o['size']) ?></td>
+                                <td><?= htmlspecialchars($o['size_code']) ?></td>
+                                <td><?= htmlspecialchars($o['price']) ?></td>
+                                <td><?= htmlspecialchars($o['code']) ?></td>
+                                <td><?= htmlspecialchars($o['quantity']) ?></td>
+                                <td><?= htmlspecialchars($o['hsn_no']) ?></td>
                                 <td><a href="<?= $o['barcode_url'] ?>" target="_blank"><img src="<?= $o['barcode_url'] ?>"
                                             width="120"></a></td>
-                                <td><a href="print_pdf.php?id=<?= $o['id'] ?>" target="_blank">🖨 Print</a> |
-                                    <a href="create_order.php?delete_id=<?= $o['id'] ?>"
-                                        onclick="return confirm('Are you sure?')" style="color:red;">🗑 Delete</a>
+                                <td>
+                                    <div class="action" style="display:flex; gap:12px; align-items:center;">
+                                        <a href="print_pdf.php?id=<?= $o['id'] ?>" target="_blank"
+                                            class="del-edit-btn btn-print">
+                                            🖨 Print
+                                        </a>
+
+                                        <a href="create_order.php?delete_id=<?= $o['id'] ?>"
+                                            onclick="return confirm('Are you sure you want to delete this order?')"
+                                            class="del-edit-btn btn-delete">
+                                            🗑 Delete
+                                        </a>
+                                    </div>
                                 </td>
+
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -470,7 +570,10 @@ $orders = $stmt->fetchAll();
                     <?php endif; ?>
                 </table>
                 <?php if (count($orders) > 0): ?>
-                    <button type="submit" class="btn" id="printSelectedBtn" style="display:none;">🖨 Print Selected</button>
+                    <div class="margin-btn">
+                        <button type="submit" class="btn" id="printSelectedBtn" style="display:none;">🖨 Print
+                            Selected</button>
+                    </div>
                 <?php endif; ?>
             </form>
 
